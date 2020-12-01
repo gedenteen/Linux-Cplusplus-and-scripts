@@ -80,13 +80,6 @@ int ProcessParameters(int argc, char *argv[],
     return 0;
 }
 
-int min(int a, int b) {
-    if (a < b)
-        return a;
-    else
-        return b;
-}
-
 long long GetCacheAlignment() {
     FILE *fcpu;
     if ((fcpu = fopen("/proc/cpuinfo", "r")) == NULL) {
@@ -122,18 +115,6 @@ long long GetCacheAlignment() {
     return val;
 }
 
-int PrintMatrix(double **matrix, int n) {
-    int i, j;
-    for (i = 0; i < n; i++) {
-        for (j = 0; j < n; j++) {
-            //printf("[%lld][%lld]=", i, j);
-            printf("%.6f ", matrix[i][j]);
-        }
-        printf("\n");
-    }
-    return 0;
-}
-
 int PrintMatrix(double *matrix, int n) {
     int i, j;
     for (i = 0; i < n; i++) {
@@ -143,86 +124,6 @@ int PrintMatrix(double *matrix, int n) {
         }
         printf("\n");
     }
-    return 0;
-}
-
-int MatrixMul(int mulType_i, int matrixSize,
-              bool bCheck, double &time_d) {
-    int i, j, k;
-    ///выделение памяти под матрицы:
-    double **matrix1 = new double*[matrixSize];
-    double **matrix2 = new double*[matrixSize];
-    double **matrixRes = new double*[matrixSize];
-    for (i = 0; i < matrixSize; i++) {
-        matrix1[i] = new double[matrixSize];
-        matrix2[i] = new double[matrixSize];
-        matrixRes[i] = new double[matrixSize];
-    }
-    ///заполнение матриц случайныи числами:
-    for (i = 0; i < matrixSize; i++) {
-        for (j = 0; j < matrixSize; j++) {
-            matrix1[i][j] = rand() / 123456 + (double)rand() / RAND_MAX;
-            matrix2[i][j] = rand() / 123456 + (double)rand() / RAND_MAX;
-            matrixRes[i][j] = 0;
-        }
-    }
-    ///проверка:
-    if (bCheck) {
-        printf("before multiplication: \n");
-        PrintMatrix(matrix1, min(3, matrixSize));
-        printf("\n");
-        PrintMatrix(matrix2, min(3, matrixSize));
-        printf("\n");
-        PrintMatrix(matrixRes, min(3, matrixSize));
-        printf("\n");
-    }
-    ///для вычисления времени:
-    clock_t start, stop;
-    long long time_i = 0;
-    start = clock();
-    ///умножение матриц по строке и столбцу:
-    if (mulType_i == 1) { ///обычное умножение матриц
-        for (i = 0; i < matrixSize; i++)
-        for (j = 0; j < matrixSize; j++)
-        for (k = 0; k < matrixSize; k++) {
-            ///если замерять время здесь, то программа многократно замедляется
-            matrixRes[i][j]  += matrix1[i][k] * matrix2[k][j];
-        }
-    }
-    else if (mulType_i == 2) { ///построчное умножение матриц
-        for (i = 0; i < matrixSize; i++)
-        for (k = 0; k < matrixSize; k++)
-        for (j = 0; j < matrixSize; j++) {
-            matrixRes[i][j]  += (double)matrix1[i][k] * matrix2[k][j];
-        }
-    }
-    else {
-        printf("Error in MatrixMul(), wrong mulType_i");
-    }
-    ///вычисление времени:
-    stop = clock();
-    time_i += stop - start; ///время в тактах
-    time_d = (double)time_i / CLOCKS_PER_SEC; ///время в секундах
-    ///проверка:
-    if (bCheck) {
-        printf("\nafter multiplication: \n");
-        printf("time_d=%f \n", time_d);
-        PrintMatrix(matrix1, min(3, matrixSize));
-        printf("\n");
-        PrintMatrix(matrix2, min(3, matrixSize));
-        printf("\n");
-        PrintMatrix(matrixRes, min(3, matrixSize));
-        printf("\n");
-    }
-    ///освобождение памяти:
-    for (i = 0; i < matrixSize; i++) {
-        delete(matrix1[i]);
-        delete(matrix2[i]);
-        delete(matrixRes[i]);
-    }
-    delete(matrix1);
-    delete(matrix2);
-    delete(matrixRes);
     return 0;
 }
 
@@ -252,7 +153,7 @@ void* MatrixMulForThread(void* voidpArgs)
     return 0;
 }
 
-int MatrixBlockMul(int mulType_i, int blockSize,
+int MatrixMul(int mulType_i, int blockSize,
                    int matrixSize, bool bCheck,
                    double &time_d, int threadsCnt) {
     int i, j, k;
@@ -284,6 +185,23 @@ int MatrixBlockMul(int mulType_i, int blockSize,
     long long time_i = 0;
     start = clock(); ///начало замера времени
     ///умножение матриц по строке и столбцу:
+    if (mulType_i == 1) { ///обычное умножение матриц
+        for (i = 0; i < matrixSize; i++)
+        for (j = 0; j < matrixSize; j++)
+        for (k = 0; k < matrixSize; k++) {
+            ///если замерять время здесь, то программа многократно замедляется
+            matrixRes[i * matrixSize + j]  +=
+                matrix1[i * matrixSize + k] * matrix2[k * matrixSize + j];
+        }
+    }
+    else if (mulType_i == 2) { ///построчное умножение матриц
+        for (i = 0; i < matrixSize; i++)
+        for (k = 0; k < matrixSize; k++)
+        for (j = 0; j < matrixSize; j++) {
+            matrixRes[i * matrixSize + j]  +=
+                matrix1[i * matrixSize + k] * matrix2[k * matrixSize + j];
+        }
+    }
     double *m1, *m2, *mRes; ///копии матриц
     int i0, j0, k0;
     if (mulType_i == 3) { ///блочное умножение матриц
@@ -418,19 +336,19 @@ int TestsHandler(char* mulType, int launchCnt,
     ///измерения (тестирование):
     for (int i = 0; i < launchCnt; i++) {
         if (strcmp("usual", mulType) == 0) {
-            MatrixMul(1, matrixSize, bCheck, time_d[i]);
+            MatrixMul(1, blockSize, matrixSize, bCheck, time_d[i], threadsCnt);
         }
         if (strcmp("row_by_row", mulType) == 0) {
-            MatrixMul(2, matrixSize, bCheck, time_d[i]);
+            MatrixMul(2, blockSize, matrixSize, bCheck, time_d[i], threadsCnt);
         }
         if (strcmp("block", mulType) == 0) {
-            MatrixBlockMul(3, blockSize, matrixSize, bCheck, time_d[i], threadsCnt);
+            MatrixMul(3, blockSize, matrixSize, bCheck, time_d[i], threadsCnt);
         }
         if (strcmp("POSIX_Threads", mulType) == 0) {
-            MatrixBlockMul(4, blockSize, matrixSize, bCheck, time_d[i], threadsCnt);
+            MatrixMul(4, blockSize, matrixSize, bCheck, time_d[i], threadsCnt);
         }
         if (strcmp("OpenMP", mulType) == 0) {
-            MatrixBlockMul(5, blockSize, matrixSize, bCheck, time_d[i], threadsCnt);
+            MatrixMul(5, blockSize, matrixSize, bCheck, time_d[i], threadsCnt);
         }
         summand1 += time_d[i] * time_d[i];
         summand2 += time_d[i];
