@@ -3,7 +3,7 @@
 int ProcessParameters(int argc, char *argv[],
                       int &matrixSize, char* mulType,
                       int &launchCnt, bool &bCheck,
-                      int &blockSize)
+                      int &blockSize, int &threadsCnt)
 {
     int i;
     for (i = 1; i < argc; i++)
@@ -61,6 +61,17 @@ int ProcessParameters(int argc, char *argv[],
             blockSize = atoi(argv[i]); ///приведение строки в long long int
             if (blockSize == 0) {
                 printf("Error in arguments of main(): incorrect value for --block-size \n");
+                return 1;
+            }
+        }
+        ///если число потоков:
+        else if (strcmp("-tc", argv[i]) == 0 ||
+                 strcmp("--threads-count", argv[i]) == 0)
+        {
+            i++;
+            threadsCnt = atoi(argv[i]); ///приведение строки в long long int
+            if (threadsCnt <= 0) {
+                printf("Error in arguments of main(): incorrect value for --threads-count \n");
                 return 1;
             }
         }
@@ -242,8 +253,8 @@ void* MatrixMulForThread(void* voidpArgs)
 }
 
 int MatrixBlockMul(int mulType_i, int blockSize,
-                   int matrixSize,
-                   bool bCheck, double &time_d) {
+                   int matrixSize, bool bCheck,
+                   double &time_d, int threadsCnt) {
     int i, j, k;
     ///выделение памяти под матрицы:
     double *matrix1 = new double[matrixSize * matrixSize];
@@ -262,15 +273,16 @@ int MatrixBlockMul(int mulType_i, int blockSize,
     }
     ///проверка:
     if (bCheck) {
-        printf("matrix1: \n");
+        printf("\nmatrix1: \n");
         PrintMatrix(matrix1, matrixSize);
-        printf("matrix2: \n");
+        printf("\nmatrix2: \n");
         PrintMatrix(matrix2, matrixSize);
+        printf("\n");
     }
     ///для вычисления времени:
     clock_t start, stop;
     long long time_i = 0;
-    start = clock();
+    start = clock(); ///начало замера времени
     ///умножение матриц по строке и столбцу:
     double *m1, *m2, *mRes; ///копии матриц
     int i0, j0, k0;
@@ -292,32 +304,55 @@ int MatrixBlockMul(int mulType_i, int blockSize,
         }
     }
     if (mulType_i == 4) { ///POSIX Threads
-        printf("aaaa 4 ");
-        ///создать указатель на структуру, которая содержит данные для потока:
-        argsForThread* pArgs = (argsForThread*) malloc(sizeof(argsForThread));
-        pArgs->matrix1 = matrix1;
-        pArgs->matrix2 = matrix2;
-        pArgs->matrixRes = matrixRes;
-        pArgs->matrixSize = matrixSize;
-        pArgs->from = 0;
-        pArgs->to = matrixSize;
-        ///создание потоков:
-        pthread_t thread_id;
-        pthread_create(&thread_id, NULL, MatrixMulForThread, pArgs);
-        ///подождать поток
-        int status = pthread_join(thread_id, NULL);
-        if (status == 0)
-            printf("free thread \n");
+        //printf("aaaa 4 ");
+        //int cntThreads = 2;
+        ///получить дефолтные значения атрибутов потоков:
+        pthread_attr_t attr;
+        pthread_attr_init(&attr);
+        ///указатель на указатели структуры argsForThread:
+        argsForThread** pArgs = (argsForThread**) malloc(threadsCnt * sizeof(argsForThread*));
+        pthread_t thread_id[threadsCnt]; ///идентификаторы потоков
+        int statuses[threadsCnt]; ///
+        int statuses_sum = 0;
+        for (int i = 0; i < threadsCnt; i++) {
+            pArgs[i] = (argsForThread*) malloc(sizeof(argsForThread));
+            pArgs[i]->matrix1 = matrix1;
+            pArgs[i]->matrix2 = matrix2;
+            pArgs[i]->matrixRes = matrixRes;
+            pArgs[i]->matrixSize = matrixSize;
+            pArgs[i]->from = matrixSize / threadsCnt * i;
+            pArgs[i]->to = matrixSize / threadsCnt * (i + 1);
+            if (bCheck)
+                printf("pArgs->from = %d; pArgs->to = %d \n", pArgs[i]->from, pArgs[i]->to);
+
+            ///создание потока:
+            pthread_create(&thread_id[i], &attr, MatrixMulForThread, pArgs[i]);
+
+            //free(argsForThread);
+        }
+        for (int i = 0; i < threadsCnt; i++) {
+            ///подождать поток:
+            statuses[i] = pthread_join(thread_id[i], NULL);
+            statuses_sum += statuses[i];
+        }
+        ///првоерка:
+        if (statuses_sum == 0)
+            printf("all threads done work \n");
         else
             printf("error, MatrixMulForThread() failed \n");
+        ///очистка памяти:
+        for (int i = 0; i < threadsCnt; i++) {
+            free(pArgs[i]);
+        }
+        free(pArgs);
 
     }
     if (mulType_i == 5) { ///OpenMP
         //#pragma omp parallel
         {
             start = clock();
-            #pragma omp parallel for shared(matrix1, matrix2, matrixRes) private(j, k) num_threads(2)
-            #pragma omp for schedule(static)
+            #pragma omp parallel for shared(matrix1, matrix2, matrixRes) private(j, k) num_threads(2) schedule(static)
+            //#pragma omp for schedule(static)
             for (i = 0; i < matrixSize; i++) {
                 for (j = 0; j < matrixSize; j++)
                 for (k = 0; k < matrixSize; k++) {
@@ -332,11 +367,11 @@ int MatrixBlockMul(int mulType_i, int blockSize,
     }
     ///проверка:
     if (bCheck) {
-        printf("matrixRes: \n");
+        printf("\nmatrixRes: \n");
         PrintMatrix(matrixRes, matrixSize);
     }
     ///вычисление времени:
-    stop = clock();
+    stop = clock(); ///конец замера времени
     time_i += stop - start; ///время в тактах
     if (mulType_i != 5)
         time_d = (double)time_i / CLOCKS_PER_SEC; ///время в секундах
@@ -349,7 +384,7 @@ int MatrixBlockMul(int mulType_i, int blockSize,
 
 
 int WriteToCSV(char* mulType, int launchCnt, int matrixSize,
-               int blockSize,
+               int blockSize, int threadsCnt,
                double avgTime, double absError, double relError)
 {
     ///открытие output.csv:
@@ -363,6 +398,7 @@ int WriteToCSV(char* mulType, int launchCnt, int matrixSize,
     fprintf(fout, "%d;", launchCnt);
     fprintf(fout, "%d;", matrixSize);
     fprintf(fout, "%d;", blockSize);
+    fprintf(fout, "%d;", threadsCnt);
     fprintf(fout, "clock();"); ///Timer
     fprintf(fout, "%e;", avgTime);
     fprintf(fout, "%e;", absError);
@@ -374,7 +410,7 @@ int WriteToCSV(char* mulType, int launchCnt, int matrixSize,
 
 int TestsHandler(char* mulType, int launchCnt,
                  int matrixSize, bool bCheck,
-                 int blockSize)
+                 int blockSize, int &threadsCnt)
 {
     ///начальные переменные для измерений:
     double summand1 = 0, summand2 = 0;
@@ -388,13 +424,13 @@ int TestsHandler(char* mulType, int launchCnt,
             MatrixMul(2, matrixSize, bCheck, time_d[i]);
         }
         if (strcmp("block", mulType) == 0) {
-            MatrixBlockMul(3, blockSize, matrixSize, bCheck, time_d[i]);
+            MatrixBlockMul(3, blockSize, matrixSize, bCheck, time_d[i], threadsCnt);
         }
         if (strcmp("POSIX_Threads", mulType) == 0) {
-            MatrixBlockMul(4, blockSize, matrixSize, bCheck, time_d[i]);
+            MatrixBlockMul(4, blockSize, matrixSize, bCheck, time_d[i], threadsCnt);
         }
         if (strcmp("OpenMP", mulType) == 0) {
-            MatrixBlockMul(5, blockSize, matrixSize, bCheck, time_d[i]);
+            MatrixBlockMul(5, blockSize, matrixSize, bCheck, time_d[i], threadsCnt);
         }
         summand1 += time_d[i] * time_d[i];
         summand2 += time_d[i];
@@ -408,6 +444,6 @@ int TestsHandler(char* mulType, int launchCnt,
     double absError = sqrt(dispersion); ///среднее квадратическое отклонение (погрешность)
     double relError = dispersion / avgTime * 100; ///относительная погрешность в %
 
-    WriteToCSV(mulType, launchCnt, matrixSize, blockSize, avgTime, absError, relError);
+    WriteToCSV(mulType, launchCnt, matrixSize, blockSize, threadsCnt, avgTime, absError, relError);
     return 0;
 }

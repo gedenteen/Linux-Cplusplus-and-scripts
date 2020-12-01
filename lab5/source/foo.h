@@ -10,14 +10,13 @@
 #include <pthread.h>
 #include <omp.h>
 
-//int UsualMatrixMul(long long n, double &time_d);
 int ProcessParameters(int argc, char *argv[],
                        int &matrixSize, char* mulType,
                        int &launchCnt, bool &bCheck,
-                       int &blockSize);
+                       int &blockSize, int &threadsCnt);
 int TestsHandler(char* mulType, int launchCnt,
                  int matrixSize, bool bCheck,
-                 int blockSize);
+                 int blockSize, int &threadsCnt);
 long long GetCacheAlignment();
 
 #endif

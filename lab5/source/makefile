@@ -1,5 +1,5 @@
 COMP = g++
-FLAGS = -O0 -Wall -pthread -fopenmp -o
+FLAGS = -fopenmp -O0 -Wall -lpthread -o
 #FLAGS = -O0 -Wall -g -pthread -o 
 OBJS = main.cpp foo.cpp
 

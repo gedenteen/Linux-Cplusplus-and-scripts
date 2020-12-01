@@ -1,12 +1,6 @@
-multiplication type,launch count,matrix size,block size,timer,average time,absError,relError
-usual;1;1024;64;clock();1.577758e+01;0.000000e+00;0.000000e+00%;
-block;1;1024;64;clock();4.054467e+00;0.000000e+00;0.000000e+00%;
-OpenMP;1;1024;64;clock();5.881292e+01;0.000000e+00;0.000000e+00%;
-OpenMP;1;1024;64;clock();4.194396e+01;0.000000e+00;0.000000e+00%;
-OpenMP;1;1024;64;clock();4.347512e+01;0.000000e+00;0.000000e+00%;
-OpenMP;1;1024;64;clock();1.584103e+01;0.000000e+00;0.000000e+00%;
-OpenMP;1;1024;64;clock();1.082859e+01;0.000000e+00;0.000000e+00%;
-OpenMP;1;1024;64;clock();4.436852e+01;0.000000e+00;0.000000e+00%;
-OpenMP;1;1024;64;clock();3.903276e+01;0.000000e+00;0.000000e+00%;
-OpenMP;1;1024;64;clock();2.195964e+02;0.000000e+00;0.000000e+00%;
-OpenMP;1;1024;64;clock();4.852182e+01;0.000000e+00;0.000000e+00%;
+multiplication type;launch count;matrix size;block size;threads count;timer;average time;absError;relError;
+usual;3;512;64;1;clock();1.074212e+00;2.128083e-01;4.215868e+00%;
+row_by_row;3;512;64;1;clock();9.243143e-01;4.264586e-03;1.967588e-03%;
+block;3;512;64;1;clock();7.041053e-01;5.913276e-03;4.966136e-03%;
+POSIX_Threads;3;512;64;2;clock();2.126852e+00;6.407539e-02;1.930391e-01%;
+OpenMP;3;512;64;2;clock();2.030772e+00;3.673293e-02;6.644310e-02%;
