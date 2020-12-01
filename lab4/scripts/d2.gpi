@@ -1,0 +1,17 @@
+#! /usr/bin/gnuplot
+#! /usr/bin/gnuplot -persist
+
+#изображение, где будет диаграмма
+set terminal png font "Verdana,12" size 1200, 800
+set output "../data/diagram_t2.png"
+
+#символ-раделитель в output.csv
+set datafile separator ';'
+
+#подпись осей
+set xlabel "matrix size" 
+set ylabel "time in seconds" 
+
+#считать информацию, every 5 - считывать значение только из каждой 5 строки 
+plot "../data/output.csv" using 3:6 with linespoints lw 3 pt 5 title "usual mul"
+#linespoints - линии с точками, lw - толщина линии, pt - размер точек

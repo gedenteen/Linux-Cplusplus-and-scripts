@@ -1,0 +1,38 @@
+#! /usr/bin/gnuplot
+#! /usr/bin/gnuplot -persist
+
+#изображение, где будет диаграмма
+set terminal png font "Verdana,12" size 1200, 800
+set output "../data/diagram33.png"
+
+#символ-раделитель в outout.csv
+set datafile separator ';'
+
+# ось игрек
+set ylabel "AbsError" 
+
+#установки сетки по одной оси
+set grid ytics 
+
+#область значений для осей
+set xrange [-0.5:1] 
+
+#отступ снизу
+set bmargin 4
+
+#передвинуть надписи по оси х на 2
+#set xtic offset character 1, 0
+
+#устаносить стиль гистограмм
+set style data histograms
+
+#установить ширину столбцов 1 от максимальной
+set boxwidth 0.8 absolute 
+set style fill solid 1 
+
+plot "<(sed -n '5,5p' ../data/output.csv)" using 10 title "AbsError(write), launchCnt=5", \
+     "<(sed -n '5,5p' ../data/output.csv)" using 15 title "AbsError(read), launchCnt=5", \
+     "<(sed -n '15,15p' ../data/output.csv)" using 10 title "AbsError(write), launchCnt=10", \
+     "<(sed -n '15,15p' ../data/output.csv)" using 15 title "AbsError(read), launchCnt=10", \
+     "<(sed -n '35,35p' ../data/output.csv)" using 10 title "AbsError(write), launchCnt=20", \
+     "<(sed -n '35,35p' ../data/output.csv)" using 15 title "AbsError(read), launchCnt=20"

@@ -1,0 +1,12 @@
+пример запуска программы:
+cd source
+make
+./main.exe -s 400 -t usual -l 3
+
+пример запуска скриптов:
+cd scripts
+./s2.sh
+./d2.gpi
+
+для информации о кэш-промахах, пример:
+sudo perf stat -e cache-references,cache-misses  ./main.exe -s 99 -t usual

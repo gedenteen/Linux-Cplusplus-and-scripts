@@ -1,0 +1,29 @@
+#! /usr/bin/gnuplot
+#! /usr/bin/gnuplot -persist
+
+#изображение, где будет диаграмма
+set terminal png font "Verdana,12" size 1200, 800
+set output "../data/diagram_star1.png"
+
+#символ-раделитель в output.csv
+set datafile separator ';'
+
+#область значений для осей
+set xrange [0:8]
+
+#подписи по оси абсцисс
+set xtics ("4" 1, "8" 2, "16" 3, "32" 4, "64" 5, "128" 6, "256" 7) 
+
+#подпись осей
+set xlabel "block size (const matrix-size = 512)" 
+set ylabel "time in seconds"
+
+#устаносить стиль гистограмм
+set style data histograms 
+
+#установить ширину столбцов 0.8 от максимальной
+set boxwidth 0.8 absolute 
+set style fill solid 1 
+
+#считать информацию, every 5 - считывать значение только из каждой 5 строки 
+plot "../data/output.csv" using 6 with boxes title "block mul"

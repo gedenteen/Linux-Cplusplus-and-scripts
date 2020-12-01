@@ -1,0 +1,32 @@
+#! /usr/bin/gnuplot
+#! /usr/bin/gnuplot -persist
+
+#изображение, где будет диаграмма
+set terminal png font "Verdana,12" size 1200, 800
+set output "diagram.png"
+
+#символ-раделитель в outout.csv
+set datafile separator ';'
+
+# ось игрек
+set ylabel "processor performance (speed)" 
+
+#установки сетки по одной оси
+set grid ytics 
+
+#область значений для осей
+#set yrange [0:400000] 
+set xrange [-1:3] 
+
+#подписи по оси абсцисс
+set xtics ("type: int" 0, "type: long long" 1, "type: double" 2,) 
+
+#устаносить стиль диаграммы
+set style data boxes 
+
+#установить ширину столбцов 0.6 от максимальной
+set boxwidth 0.6 absolute 
+set style fill solid 1 
+
+#считать информацию
+plot "output.csv" using 11 title "test \"number * matrix\""

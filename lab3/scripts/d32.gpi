@@ -1,0 +1,40 @@
+#! /usr/bin/gnuplot
+#! /usr/bin/gnuplot -persist
+
+#изображение, где будет диаграмма
+set terminal png font "Verdana,12" size 1200, 800
+set output "../data/diagram32.png"
+
+#символ-раделитель в outout.csv
+set datafile separator ';'
+
+# ось игрек
+set ylabel "AbsError" 
+
+#установки сетки по одной оси
+set grid ytics 
+
+#область значений для осей
+set xrange [0:10] 
+
+#отступ снизу
+set bmargin 4
+
+#подписи по оси абсцисс
+set xtics ("RAM,\n 8 Kb" 1, "RAM,\n 64 Kb" 2, "RAM,\n 256 Kb" 3, \
+           "SSD,\n 8 Kb" 4, "SSD,\n 64 Kb" 5, "SSD,\n 256 Kb" 6, \
+           "flash,\n 8 Kb" 7, "flash,\n 64 Kb" 8, "flash,\n 256 Kb" 9) 
+
+#передвинуть надписи по оси х на 2
+set xtic offset character 1, 0
+
+#устаносить стиль гистограмм
+set style data histograms 
+
+#установить ширину столбцов 1 от максимальной
+set boxwidth 1 absolute 
+set style fill solid 1 
+
+#считать информацию, every 5 - считывать значение только из каждой 5 строки 
+plot "../data/output.csv" every 10 using 11 title "AbsError(write)", \
+     "../data/output.csv" every 10 using 16 title "AbsError(read)" lt rgb 'orange'

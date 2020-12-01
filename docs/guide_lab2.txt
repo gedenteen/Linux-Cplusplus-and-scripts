@@ -1,0 +1,2 @@
+chmod +x diagram.gpi
+./diagram.gpi
