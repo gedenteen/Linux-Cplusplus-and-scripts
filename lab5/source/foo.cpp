@@ -141,7 +141,7 @@ void* MatrixMulForThread(void* voidpArgs)
     argsForThread* pArgs = (argsForThread*) voidpArgs;
 
     for (int i = pArgs->from; i < pArgs->to; i++) {
-        printf("i=%d ", i);
+        //printf("i=%d ", i);
         for (int j = 0; j < pArgs->matrixSize; j++)
         for (int k = 0; k < pArgs->matrixSize; k++) {
             pArgs->matrixRes[i * pArgs->matrixSize + j]  +=
@@ -154,8 +154,9 @@ void* MatrixMulForThread(void* voidpArgs)
 }
 
 int MatrixMul(int mulType_i, int blockSize,
-                   int matrixSize, bool bCheck,
-                   double &time_d, int threadsCnt) {
+              int matrixSize, bool bCheck,
+              double &time_d, int threadsCnt)
+{
     int i, j, k;
     ///выделение памяти под матрицы:
     double *matrix1 = new double[matrixSize * matrixSize];
@@ -184,7 +185,7 @@ int MatrixMul(int mulType_i, int blockSize,
     clock_t start, stop;
     long long time_i = 0;
     start = clock(); ///начало замера времени
-    ///умножение матриц по строке и столбцу:
+    ///--- умножение матриц по строке и столбцу: ---///
     if (mulType_i == 1) { ///обычное умножение матриц
         for (i = 0; i < matrixSize; i++)
         for (j = 0; j < matrixSize; j++)
@@ -222,8 +223,6 @@ int MatrixMul(int mulType_i, int blockSize,
         }
     }
     if (mulType_i == 4) { ///POSIX Threads
-        //printf("aaaa 4 ");
-        //int cntThreads = 2;
         ///получить дефолтные значения атрибутов потоков:
         pthread_attr_t attr;
         pthread_attr_init(&attr);
@@ -232,6 +231,7 @@ int MatrixMul(int mulType_i, int blockSize,
         pthread_t thread_id[threadsCnt]; ///идентификаторы потоков
         int statuses[threadsCnt]; ///
         int statuses_sum = 0;
+        ///определние "границ" для каждого потока:
         for (int i = 0; i < threadsCnt; i++) {
             pArgs[i] = (argsForThread*) malloc(sizeof(argsForThread));
             pArgs[i]->matrix1 = matrix1;
@@ -240,30 +240,25 @@ int MatrixMul(int mulType_i, int blockSize,
             pArgs[i]->matrixSize = matrixSize;
             pArgs[i]->from = matrixSize / threadsCnt * i;
             pArgs[i]->to = matrixSize / threadsCnt * (i + 1);
-            if (bCheck)
-                printf("pArgs->from = %d; pArgs->to = %d \n", pArgs[i]->from, pArgs[i]->to);
-
+            //if (bCheck)
+            //    printf("pArgs->from = %d; pArgs->to = %d \n", pArgs[i]->from, pArgs[i]->to);
             ///создание потока:
             pthread_create(&thread_id[i], &attr, MatrixMulForThread, pArgs[i]);
-
-            //free(argsForThread);
         }
         for (int i = 0; i < threadsCnt; i++) {
             ///подождать поток:
             statuses[i] = pthread_join(thread_id[i], NULL);
             statuses_sum += statuses[i];
         }
-        ///првоерка:
-        if (statuses_sum == 0)
-            printf("all threads done work \n");
-        else
+        //printf("\n");
+        ///проверка:
+        if (statuses_sum != 0)
             printf("error, MatrixMulForThread() failed \n");
         ///очистка памяти:
         for (int i = 0; i < threadsCnt; i++) {
             free(pArgs[i]);
         }
         free(pArgs);
-
     }
     if (mulType_i == 5) { ///OpenMP
         //#pragma omp parallel
