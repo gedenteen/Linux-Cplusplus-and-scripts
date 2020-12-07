@@ -127,15 +127,6 @@ int PrintMatrix(double *matrix, int n) {
     return 0;
 }
 
-typedef struct a {
-    double *matrix1;
-    double *matrix2;
-    double *matrixRes;
-    int matrixSize;
-    int from;
-    int to;
-} argsForThread;
-
 void* MatrixMulForThread(void* voidpArgs)
 {
     argsForThread* pArgs = (argsForThread*) voidpArgs;
@@ -184,7 +175,7 @@ int MatrixMul(int mulType_i, int blockSize,
     ///для вычисления времени:
     struct timespec mt1, mt2;
     clock_gettime(CLOCK_REALTIME, &mt1);
-    ///--- умножение матриц по строке и столбцу: ---///
+    ///--- умножение матриц: ---///
     if (mulType_i == 1) { ///обычное умножение матриц
         for (i = 0; i < matrixSize; i++)
         for (j = 0; j < matrixSize; j++)
@@ -194,7 +185,7 @@ int MatrixMul(int mulType_i, int blockSize,
                 matrix1[i * matrixSize + k] * matrix2[k * matrixSize + j];
         }
     }
-    else if (mulType_i == 2) { ///построчное умножение матриц
+    if (mulType_i == 2) { ///построчное умножение матриц
         for (i = 0; i < matrixSize; i++)
         for (k = 0; k < matrixSize; k++)
         for (j = 0; j < matrixSize; j++) {
@@ -202,9 +193,9 @@ int MatrixMul(int mulType_i, int blockSize,
                 matrix1[i * matrixSize + k] * matrix2[k * matrixSize + j];
         }
     }
-    double *m1, *m2, *mRes; ///копии матриц
-    int i0, j0, k0;
     if (mulType_i == 3) { ///блочное умножение матриц
+        double *m1, *m2, *mRes; ///копии матриц
+        int i0, j0, k0;
         for (i = 0; i < matrixSize; i += blockSize)
         for (j = 0; j < matrixSize; j += blockSize)
         for (k = 0; k < matrixSize; k += blockSize) {
@@ -239,8 +230,6 @@ int MatrixMul(int mulType_i, int blockSize,
             pArgs[i]->matrixSize = matrixSize;
             pArgs[i]->from = matrixSize / threadsCnt * i;
             pArgs[i]->to = matrixSize / threadsCnt * (i + 1);
-            //if (bCheck)
-            //    printf("pArgs->from = %d; pArgs->to = %d \n", pArgs[i]->from, pArgs[i]->to);
             ///создание потока:
             pthread_create(&thread_id[i], &attr, MatrixMulForThread, pArgs[i]);
         }
@@ -249,7 +238,6 @@ int MatrixMul(int mulType_i, int blockSize,
             statuses[i] = pthread_join(thread_id[i], NULL);
             statuses_sum += statuses[i];
         }
-        //printf("\n");
         ///проверка:
         if (statuses_sum != 0)
             printf("error, MatrixMulForThread() failed \n");
@@ -260,14 +248,16 @@ int MatrixMul(int mulType_i, int blockSize,
         free(pArgs);
     }
     if (mulType_i == 5) { ///OpenMP
-#pragma omp parallel for shared(matrix1, matrix2, matrixRes) private(j, k) num_threads(2) schedule(static)
+#pragma omp parallel for shared(matrix1, matrix2, matrixRes) \
+private(j, k) num_threads(threadsCnt) schedule(static)
         for (i = 0; i < matrixSize; i++) {
             for (j = 0; j < matrixSize; j++) {
-                double tmp = 0;
+                //double tmp = 0;
                 for (k = 0; k < matrixSize; k++) {
-                    tmp += matrix1[i * matrixSize + k] * matrix2[k * matrixSize + j];
+                    matrixRes[i * matrixSize + j] +=
+                    matrix1[i * matrixSize + k] * matrix2[k * matrixSize + j];
                 }
-                matrixRes[i * matrixSize + j] = tmp;
+                //matrixRes[i * matrixSize + j] = tmp;
             }
         }
     }
@@ -304,7 +294,7 @@ int WriteToCSV(char* mulType, int launchCnt, int matrixSize,
     fprintf(fout, "%d;", matrixSize);
     fprintf(fout, "%d;", blockSize);
     fprintf(fout, "%d;", threadsCnt);
-    fprintf(fout, "clock();"); ///Timer
+    fprintf(fout, "clock_gettime();"); ///Timer
     fprintf(fout, "%e;", avgTime);
     fprintf(fout, "%e;", absError);
     fprintf(fout, "%e%%;", relError);
