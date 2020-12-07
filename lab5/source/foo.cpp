@@ -182,9 +182,8 @@ int MatrixMul(int mulType_i, int blockSize,
         printf("\n");
     }
     ///для вычисления времени:
-    clock_t start, stop;
-    long long time_i = 0;
-    start = clock(); ///начало замера времени
+    struct timespec mt1, mt2;
+    clock_gettime(CLOCK_REALTIME, &mt1);
     ///--- умножение матриц по строке и столбцу: ---///
     if (mulType_i == 1) { ///обычное умножение матриц
         for (i = 0; i < matrixSize; i++)
@@ -261,21 +260,15 @@ int MatrixMul(int mulType_i, int blockSize,
         free(pArgs);
     }
     if (mulType_i == 5) { ///OpenMP
-        //#pragma omp parallel
-        {
-            start = clock();
-            #pragma omp parallel for shared(matrix1, matrix2, matrixRes) private(j, k) num_threads(2) schedule(static)
-            //#pragma omp for schedule(static)
-            for (i = 0; i < matrixSize; i++) {
-                for (j = 0; j < matrixSize; j++)
+#pragma omp parallel for shared(matrix1, matrix2, matrixRes) private(j, k) num_threads(2) schedule(static)
+        for (i = 0; i < matrixSize; i++) {
+            for (j = 0; j < matrixSize; j++) {
+                double tmp = 0;
                 for (k = 0; k < matrixSize; k++) {
-                    matrixRes[i * matrixSize + j]  +=
-                        matrix1[i * matrixSize + k] * matrix2[k * matrixSize + j];
+                    tmp += matrix1[i * matrixSize + k] * matrix2[k * matrixSize + j];
                 }
+                matrixRes[i * matrixSize + j] = tmp;
             }
-            stop = clock();
-            time_d = (double)(stop - start) / CLOCKS_PER_SEC;
-            printf("stop - start = %f \n", time_d);
         }
     }
     ///проверка:
@@ -284,10 +277,9 @@ int MatrixMul(int mulType_i, int blockSize,
         PrintMatrix(matrixRes, matrixSize);
     }
     ///вычисление времени:
-    stop = clock(); ///конец замера времени
-    time_i += stop - start; ///время в тактах
-    if (mulType_i != 5)
-        time_d = (double)time_i / CLOCKS_PER_SEC; ///время в секундах
+    clock_gettime(CLOCK_REALTIME, &mt2);
+    time_d = (double)(mt2.tv_sec - mt1.tv_sec) +
+             (double)(mt2.tv_nsec - mt1.tv_nsec) / 1e9; ///время в секундах
     ///освобождение памяти:
     delete(matrix1);
     delete(matrix2);
