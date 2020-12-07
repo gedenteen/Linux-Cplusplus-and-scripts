@@ -1,0 +1,23 @@
+#! /usr/bin/gnuplot
+#! /usr/bin/gnuplot -persist
+
+#изображение, где будет диаграмма
+set terminal png font "Verdana,12" size 1200, 800
+set output "../data/threads_cnt.png"
+
+#символ-раделитель в output.csv
+set datafile separator ';'
+
+#подпись осей
+set xlabel "threads count"
+set ylabel "time in seconds"
+
+#считать информацию
+plot "../data/output.csv" using 5:7 every 2::1 with linespoints lw 3 pt 5 title "Posix threads", \
+     "../data/output.csv" using 5:7 every 2::2 with linespoints lw 3 pt 5 title "OpenMP"
+
+#linespoints - линии с точками, lw - толщина линии, pt - размер точек
+#every 2::1 - брать значение каждые 2 строки, начиная с 1-й
+#every 2::2 - брать значение каждые 2 строки, начиная с 2-й
+#?? отсчет строк с 0, а столбцов с 1??
+#сайт http://phaselockfel.blogspot.com/2007/08/gnuplot-to-plot-partial-data.html
